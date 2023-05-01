@@ -50,38 +50,28 @@ impl Prover {
     }    
 }
 
-fn main() {
-    let g = build_sample_polynomial();
+fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> bool {
     let prover = Prover { g: g.clone() };
     let rng = &mut test_rng();
     let mut r: Vec<Fq> = vec![];
     let mut previous_gj = UnivariateSparsePolynomial::zero();
     for j in 0..g.num_vars {
         let gj = prover.evaluate_hypercube_sum_fixing_point_prefix(&r);
-        assert_eq!(gj.degree(), degree(&g, j));
-        let gj_sum = gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one());
-        if j == 0 {
-            assert_eq!(prover.evaluate_hypercube_sum(), gj_sum);
+        if gj.degree() != degree(&g, j) {
+            return false;
+        }
+        let expected_gj_sum = if j == 0 {
+            prover.evaluate_hypercube_sum()
         } else {
-            assert_eq!(previous_gj.evaluate(&r[j-1]), gj_sum);
+            previous_gj.evaluate(&r[j-1])
+        };
+        if gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one()) != expected_gj_sum {
+            return false;
         }
         r.push(Fq::rand(rng));
         previous_gj = gj;
     }
-    assert_eq!(previous_gj.evaluate(&r[g.num_vars-1]), g.evaluate(&r)); 
-    println!("All good");
-}
-
-// Create multivariate polynomial 2*x_0^3 + x_0*x_2 + x_1*x_2
-fn build_sample_polynomial() -> SparsePolynomial<Fq, SparseTerm> {
-    SparsePolynomial::from_coefficients_vec(
-        3,
-        vec![
-            (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
-            (Fq::one(), SparseTerm::new(vec![(0, 1), (2, 1)])),
-            (Fq::one(), SparseTerm::new(vec![(1, 1), (2, 1)])),
-        ],
-    )
+    previous_gj.evaluate(&r[g.num_vars-1]) == g.evaluate(&r)
 }
 
 fn degree_in_term(term: &SparseTerm, k: usize) -> usize {
@@ -90,4 +80,20 @@ fn degree_in_term(term: &SparseTerm, k: usize) -> usize {
 
 fn degree(poly: &SparsePolynomial<Fq, SparseTerm>, k: usize) -> usize {
     poly.terms().iter().map(|(_, term)| degree_in_term(term, k)).max().unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+ 
+    #[test]
+    fn thaler_example() {
+        // It is 2*x_0^3 + x_0*x_2 + x_1*x_2
+        let g = SparsePolynomial::from_coefficients_vec(3,
+            vec![
+                (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
+                (Fq::one(), SparseTerm::new(vec![(0, 1), (2, 1)])),
+                (Fq::one(), SparseTerm::new(vec![(1, 1), (2, 1)]))]);    
+        assert!(sumcheck_protocol(&g));
+    }
 }
