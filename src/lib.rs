@@ -55,20 +55,21 @@ pub fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> Option<Fq> {
     let hypercube_sum = prover.evaluate_hypercube_sum();
     let rng = &mut test_rng();
     let mut r: Vec<Fq> = vec![];
-    let mut previous_gj = UnivariateSparsePolynomial::zero();
+    let mut previous_gj_eval = Fq::zero();
     for j in 0..g.num_vars {
         let gj = prover.evaluate_hypercube_sum_fixing_point_prefix(&r);
         if gj.degree() != degree(&g, j) {
             return None;
         }
-        let expected_gj_sum = if j == 0 { hypercube_sum } else { previous_gj.evaluate(&r[j-1])};
+        let expected_gj_sum = if j == 0 { hypercube_sum } else { previous_gj_eval };
         if gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one()) != expected_gj_sum {
             return None;
         }
-        r.push(Fq::rand(rng));
-        previous_gj = gj;
+        let rj = Fq::rand(rng);
+        r.push(rj);
+        previous_gj_eval = gj.evaluate(&rj);
     }
-    if previous_gj.evaluate(&r[g.num_vars-1]) != g.evaluate(&r) {
+    if previous_gj_eval != g.evaluate(&r) {
         return None;
     }
     Some(hypercube_sum)
