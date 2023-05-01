@@ -50,28 +50,28 @@ impl Prover {
     }    
 }
 
-pub fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> bool {
+pub fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> Option<Fq> {
     let prover = Prover { g: g.clone() };
+    let hypercube_sum = prover.evaluate_hypercube_sum();
     let rng = &mut test_rng();
     let mut r: Vec<Fq> = vec![];
     let mut previous_gj = UnivariateSparsePolynomial::zero();
     for j in 0..g.num_vars {
         let gj = prover.evaluate_hypercube_sum_fixing_point_prefix(&r);
         if gj.degree() != degree(&g, j) {
-            return false;
+            return None;
         }
-        let expected_gj_sum = if j == 0 {
-            prover.evaluate_hypercube_sum()
-        } else {
-            previous_gj.evaluate(&r[j-1])
-        };
+        let expected_gj_sum = if j == 0 { hypercube_sum } else { previous_gj.evaluate(&r[j-1])};
         if gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one()) != expected_gj_sum {
-            return false;
+            return None;
         }
         r.push(Fq::rand(rng));
         previous_gj = gj;
     }
-    previous_gj.evaluate(&r[g.num_vars-1]) == g.evaluate(&r)
+    if previous_gj.evaluate(&r[g.num_vars-1]) != g.evaluate(&r) {
+        return None;
+    }
+    Some(hypercube_sum)
 }
 
 fn degree_in_term(term: &SparseTerm, k: usize) -> usize {
@@ -94,6 +94,6 @@ mod tests {
                 (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
                 (Fq::one(), SparseTerm::new(vec![(0, 1), (2, 1)])),
                 (Fq::one(), SparseTerm::new(vec![(1, 1), (2, 1)]))]);    
-        assert!(sumcheck_protocol(&g));
+        assert_eq!(sumcheck_protocol(&g), Some(Fq::from(12)));
     }
 }
