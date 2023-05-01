@@ -7,7 +7,7 @@ use ark_std::{test_rng, UniformRand};
 use ark_test_curves::{fp128::Fq, Zero, One};
 
 struct Prover {
-    pub g: SparsePolynomial<Fq, SparseTerm>
+    g: SparsePolynomial<Fq, SparseTerm>
 }
 
 impl Prover {
