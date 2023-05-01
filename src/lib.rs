@@ -6,7 +6,7 @@ use ark_poly::{
 use ark_std::{test_rng, UniformRand};
 use ark_test_curves::{fp128::Fq, Zero, One};
 
-pub struct Prover {
+struct Prover {
     pub g: SparsePolynomial<Fq, SparseTerm>
 }
 
@@ -50,7 +50,7 @@ impl Prover {
     }    
 }
 
-fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> bool {
+pub fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> bool {
     let prover = Prover { g: g.clone() };
     let rng = &mut test_rng();
     let mut r: Vec<Fq> = vec![];
