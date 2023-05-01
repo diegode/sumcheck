@@ -3,15 +3,29 @@ use ark_poly::{
     DenseMVPolynomial, Polynomial, multivariate::{SparseTerm, Term},
     univariate::SparsePolynomial as UnivariateSparsePolynomial,
 };
+use ark_std::{test_rng, UniformRand};
 use ark_test_curves::{fp128::Fq, Zero, One};
 
 fn main() {
     let g = build_sample_polynomial();
-    let c1 = evaluate_hypercube_sum(&g);
+    let c0 = evaluate_hypercube_sum(&g);
 
-    let g1 = evaluate_hypercube_sum_excluding_index(&g, 0);
-    assert_eq!(c1, g1.evaluate(&Fq::zero()) + g1.evaluate(&Fq::one()));
-    assert_eq!(g1.degree(), degree(&g, 0));
+    let g0 = evaluate_hypercube_sum_fixing_point_prefix(&g, &[]);
+    assert_eq!(g0.degree(), degree(&g, 0));
+    assert_eq!(c0, g0.evaluate(&Fq::zero()) + g0.evaluate(&Fq::one()));
+
+    let rng = &mut test_rng();
+    let mut r: Vec<Fq> = vec![Fq::rand(rng)];
+    let mut gjm1 = g0;
+    for j in 1..g.num_vars {
+        let gj = evaluate_hypercube_sum_fixing_point_prefix(&g, &r);
+        assert_eq!(gj.degree(), degree(&g, j));
+        assert_eq!(gjm1.evaluate(&r[j-1]), gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one()));
+
+        r.push(Fq::rand(rng));
+        gjm1 = gj;
+    }
+    assert_eq!(gjm1.evaluate(&r[g.num_vars-1]), g.evaluate(&r)); 
     println!("All good");
 }
 
@@ -39,15 +53,16 @@ fn evaluate_hypercube_sum(poly: &SparsePolynomial<Fq, SparseTerm>) -> Fq {
     sum
 }
 
-fn evaluate_hypercube_sum_excluding_index(poly: &SparsePolynomial<Fq, SparseTerm>, k: usize) -> UnivariateSparsePolynomial<Fq> {
+fn evaluate_hypercube_sum_fixing_point_prefix(poly: &SparsePolynomial<Fq, SparseTerm>, point_prefix: &[Fq]) -> UnivariateSparsePolynomial<Fq> {
     let mut sum = UnivariateSparsePolynomial::zero();
-    for i in 0..(1 << (poly.num_vars - 1)) {
-        let mut point = vec![];
-        (0..(poly.num_vars - 1)).for_each(|j: usize| {
+    let dimension = poly.num_vars - point_prefix.len() - 1;
+    for i in 0..(1 << dimension) {
+        let mut point = point_prefix.to_vec();
+        point.push(Fq::one());
+        (0..dimension).for_each(|j: usize| {
             point.push(Fq::from((i >> j) & 1));
         });
-        point.insert(k, Fq::one());
-        sum = sum + evaluate_point_excluding_index(poly, &point, k);
+        sum = sum + evaluate_point_excluding_index(poly, &point, point_prefix.len());
     }
     sum
 }
