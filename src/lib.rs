@@ -15,7 +15,7 @@ impl Prover {
         let mut sum = Fq::zero();
         for i in 0..(1 << self.g.num_vars) {
             let mut point = vec![];
-            (0..self.g.num_vars).for_each(|j: usize| {
+            (0..self.g.num_vars).for_each(|j| {
                 point.push(Fq::from((i >> j) & 1));
             });
             sum += self.g.evaluate(&point);
@@ -29,7 +29,7 @@ impl Prover {
         for i in 0..(1 << dimension) {
             let mut point = point_prefix.to_vec();
             point.push(Fq::one());
-            (0..dimension).for_each(|j: usize| {
+            (0..dimension).for_each(|j| {
                 point.push(Fq::from((i >> j) & 1));
             });
             sum = sum + self.evaluate_point_excluding_index(&point, point_prefix.len());
