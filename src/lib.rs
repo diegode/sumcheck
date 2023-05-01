@@ -58,7 +58,7 @@ pub fn sumcheck_protocol(g: &SparsePolynomial<Fq, SparseTerm>) -> Option<Fq> {
     let mut previous_gj_eval = Fq::zero();
     for j in 0..g.num_vars {
         let gj = prover.evaluate_hypercube_sum_fixing_point_prefix(&r);
-        if gj.degree() != degree(&g, j) {
+        if gj.degree() != degree(g, j) {
             return None;
         }
         let expected_gj_sum = if j == 0 { hypercube_sum } else { previous_gj_eval };
