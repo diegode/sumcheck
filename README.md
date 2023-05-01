@@ -1,1 +1,3 @@
-# sumcheck_for_marcin
+# How to execute tests
+
+Run `cargo test`.
