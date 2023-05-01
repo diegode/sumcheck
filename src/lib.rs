@@ -1,7 +1,7 @@
 use ark_poly::{
     DenseMVPolynomial, Polynomial, multivariate::{SparseTerm, Term},
 };
-use ark_std::{UniformRand, rand};
+use ark_std::UniformRand;
 use ark_test_curves::{fp128::Fq as Field, Zero, One};
 use rand::{SeedableRng, rngs::StdRng};
 
