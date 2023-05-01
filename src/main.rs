@@ -8,24 +8,22 @@ use ark_test_curves::{fp128::Fq, Zero, One};
 
 fn main() {
     let g = build_sample_polynomial();
-    let c0 = evaluate_hypercube_sum(&g);
-
-    let g0 = evaluate_hypercube_sum_fixing_point_prefix(&g, &[]);
-    assert_eq!(g0.degree(), degree(&g, 0));
-    assert_eq!(c0, g0.evaluate(&Fq::zero()) + g0.evaluate(&Fq::one()));
-
     let rng = &mut test_rng();
-    let mut r: Vec<Fq> = vec![Fq::rand(rng)];
-    let mut gjm1 = g0;
-    for j in 1..g.num_vars {
+    let mut r: Vec<Fq> = vec![];
+    let mut previous_gj = UnivariateSparsePolynomial::zero();
+    for j in 0..g.num_vars {
         let gj = evaluate_hypercube_sum_fixing_point_prefix(&g, &r);
         assert_eq!(gj.degree(), degree(&g, j));
-        assert_eq!(gjm1.evaluate(&r[j-1]), gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one()));
-
+        let gj_sum = gj.evaluate(&Fq::zero()) + gj.evaluate(&Fq::one());
+        if j == 0 {
+            assert_eq!(evaluate_hypercube_sum(&g), gj_sum);
+        } else {
+            assert_eq!(previous_gj.evaluate(&r[j-1]), gj_sum);
+        }
         r.push(Fq::rand(rng));
-        gjm1 = gj;
+        previous_gj = gj;
     }
-    assert_eq!(gjm1.evaluate(&r[g.num_vars-1]), g.evaluate(&r)); 
+    assert_eq!(previous_gj.evaluate(&r[g.num_vars-1]), g.evaluate(&r)); 
     println!("All good");
 }
 
@@ -72,7 +70,7 @@ fn evaluate_point_excluding_index(poly: &SparsePolynomial<Fq, SparseTerm>, point
     let mut result = UnivariateSparsePolynomial::zero();
     for (coeff, term) in poly.terms() {
         let result_coeff = coeff * &term.evaluate(point);
-        let k_power = degree_in_term(&term, k);
+        let k_power = degree_in_term(term, k);
         let result_term = UnivariateSparsePolynomial::from_coefficients_vec(vec![(k_power, result_coeff)]);
         result = result + result_term;
     }
