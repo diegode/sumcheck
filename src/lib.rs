@@ -1,8 +1,9 @@
 use ark_poly::{
     DenseMVPolynomial, Polynomial, multivariate::{SparseTerm, Term},
 };
-use ark_std::{test_rng, UniformRand};
+use ark_std::{UniformRand, rand};
 use ark_test_curves::{fp128::Fq as Field, Zero, One};
+use rand::{SeedableRng, rngs::StdRng};
 
 pub type MultivariatePolynomial = ark_poly::polynomial::multivariate::SparsePolynomial<Field, SparseTerm>;
 pub type UnivariatePolynomial = ark_poly::univariate::SparsePolynomial<Field>;
@@ -54,7 +55,7 @@ impl Prover {
 pub fn sumcheck_protocol(g: &MultivariatePolynomial) -> Option<Field> {
     let prover = Prover { g: g.clone() };
     let hypercube_sum = prover.evaluate_hypercube_sum();
-    let rng = &mut test_rng();
+    let mut rng = StdRng::from_entropy();
     let mut r: Vec<Field> = vec![];
     let mut previous_gj_eval = hypercube_sum;
     for j in 0..g.num_vars {
@@ -65,7 +66,7 @@ pub fn sumcheck_protocol(g: &MultivariatePolynomial) -> Option<Field> {
         if gj.evaluate(&Field::zero()) + gj.evaluate(&Field::one()) != previous_gj_eval {
             return None;
         }
-        let rj = Field::rand(rng);
+        let rj = Field::rand(&mut rng);
         r.push(rj);
         previous_gj_eval = gj.evaluate(&rj);
     }
