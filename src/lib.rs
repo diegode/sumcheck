@@ -60,7 +60,7 @@ pub fn sumcheck_protocol(g: &MultivariatePolynomial) -> Option<Field> {
     let mut previous_gj_eval = hypercube_sum;
     for j in 0..g.num_vars {
         let gj = prover.evaluate_hypercube_sum_fixing_point_prefix(&r);
-        if gj.degree() != degree(g, j) {
+        if gj.degree() > degree(g, j) {
             return None;
         }
         if gj.evaluate(&Field::zero()) + gj.evaluate(&Field::one()) != previous_gj_eval {
